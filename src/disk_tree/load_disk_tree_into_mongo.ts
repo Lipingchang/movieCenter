@@ -7,12 +7,16 @@ import process from 'process';
 const Schema = mongoose.Schema;
 const Model = mongoose.model;
 
+export const driverName = 'seagate5t'		// 全小写 会在collection的名字中出现
+export const startPath = "/mnt/f/NSFW" // drive 挂载点
+export const preholdHash = 'not set'
+
 /**
  * DiskFolderSchema 保存 文件树
  * DiskFileSchema 保存 文件具体内容
  */
 
-const DiskFolderSchema = new Schema({
+export const DiskFolderSchema = new Schema({
 	folderName: { type: String, required: true, },								// 文件夹名字
 	unixPath: { type: String, required: true, },									// 文件夹路径
 	subDiskFolders: { type: [String], required: true, },					// 子文件夹 _id 列表
@@ -25,7 +29,7 @@ const DiskFolderSchema = new Schema({
 	},
 })
 
-interface IDiskFolder {
+export interface IDiskFolder {
 	folderName: string;
 	unixPath: string;
 	subDiskFolders: Array<string>;
@@ -35,7 +39,7 @@ interface IDiskFolder {
 	}>
 }
 
-var DiskFileSchema = new Schema({ 	// 文件详情
+export const DiskFileSchema = new Schema({ 	// 文件详情
 	unixPath: { type: String, required: true }, 							  // 路径
 	fileName: { type: String, required: true },									// 名字
 	fileSize: { type: Number, required: true },									// 大小
@@ -43,7 +47,7 @@ var DiskFileSchema = new Schema({ 	// 文件详情
 	fileType: { type: String, },									// 文件格式
 })
 
-interface IDiskFile {
+export interface IDiskFile {
 	unixPath: string;
 	fileName: string;
 	fileSize: number;
@@ -51,7 +55,10 @@ interface IDiskFile {
 	fileType: string;
 }
 
-async function connectToDB() {
+export const FolderModel = Model<IDiskFolder & mongoose.Document>(`folder`, DiskFolderSchema, `${driverName.toLowerCase()}_folder`)
+export const FileModel = Model<IDiskFile & mongoose.Document>(`file`, DiskFileSchema, `${driverName.toLowerCase()}_file`)
+
+export async function connectToDB() {
 	mongoose.connect("mongodb://localhost:27017/MovieArrange", { useNewUrlParser: true, useUnifiedTopology: true })
 	const connection = mongoose.connection;
 	connection
@@ -65,9 +72,6 @@ async function connectToDB() {
 
 async function main() {
 	await connectToDB();
-	const FolderModel = Model<IDiskFolder & mongoose.Document>(`folder`, DiskFolderSchema, `${driverName.toLowerCase()}_folder`)
-	const FileModel = Model<IDiskFile & mongoose.Document>(`file`, DiskFileSchema, `${driverName.toLowerCase()}_file`)
-
 	async function saveFolder(_folder: IDiskFolder) {
 		const saveFolder = new FolderModel(_folder)
 		await saveFolder.save();
@@ -123,18 +127,17 @@ async function main() {
 }
 
 
-
-const driverName = 'seagate5t'		// 全小写 会在collection的名字中出现
-const startPath = "/mnt/f/NSFW" // drive 挂载点
-const preholdHash = 'not set'
-
-main()
-	.then((res) => {
-		console.log('root dir _id:', res)
-	})
-	.catch((err) => {
-		console.log(err.message)
-	})
-	.finally(() => {
-		process.exit()
-	})
+if (module.parent) {
+	console.log('required module')
+} else {
+	main()
+		.then((res) => {
+			console.log('root dir _id:', res)
+		})
+		.catch((err) => {
+			console.log(err.message)
+		})
+		.finally(() => {
+			process.exit()
+		})
+}
